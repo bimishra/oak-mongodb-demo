@@ -10,7 +10,7 @@
 
 ## How to use
 *   Clone or download the project
-*   Build with maven do not run the tests as it may cause failure due to environmental reasons. 
+*   Build with maven and do not run the tests as it may cause failure due to environmental reasons. 
 *   Use *"mvn clean install -DskipTests"* to build
 *   Check the TestRepositoryHelper.java class to see how you can use various methods to manage a  content repository.
 *    Modify the parameters/values as per your environment
