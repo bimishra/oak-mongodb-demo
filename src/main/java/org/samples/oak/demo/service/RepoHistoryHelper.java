@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import javax.jcr.Binary;
 import javax.jcr.Node;
@@ -25,7 +27,7 @@ public class RepoHistoryHelper {
     public static void restoreVersion(Session session, String versionId)
             throws UnsupportedRepositoryOperationException, RepositoryException {
         VersionManager vm = session.getWorkspace().getVersionManager();
-               Version version = (Version) session.getNodeByIdentifier(versionId);
+        Version version = (Version) session.getNodeByIdentifier(versionId);
         vm.restore(version, false);
         System.out.println("Version: " + versionId + " restored...");
     }
@@ -56,36 +58,48 @@ public class RepoHistoryHelper {
 
             VersionIterator itr = versionHistory.getAllVersions();
 
-            while (itr.hasNext()) {
-                Version version = itr.nextVersion();
+            @SuppressWarnings("unchecked")
+            Iterable<Version> iterable = () -> itr;
 
-                Node fileNode = version.getFrozenNode();
-                if (fileNode.hasProperty("size")) {
-                    System.out.println("creating version...");
-                    VersionHistory history = new VersionHistory();
-                    history.setModifiedOn(version.getCreated().getTime());
-
-                    String identifier = version.getIdentifier();
-                    history.setIdentifier(identifier);
-
-                    history.setFileName(fileNode.getName());
-                    Node file = fileNode.getNode("theFile");
-
-                    Node content = file.getNode("jcr:content");
-                    history.setSize(content.getProperty("jcr:data").getLength());
-                    history.setContent(content);
-                    history.setModifiedBy(fileNode.getProperty("jcr:createdBy").getString());
-                    if (currentVersion.getIdentifier().equals(version.getIdentifier())) {
-                        history.setCurrent(true);
-                    }
-                    versions.add(history);
+            versions = StreamSupport.stream(iterable.spliterator(), false).map(i -> {
+                try {
+                    return getVersionHistory(i, currentVersion);
+                } catch (RepositoryException e) {
+                    e.printStackTrace();
+                    return null;
                 }
-            }
+            }).collect(Collectors.toList());
 
         } catch (RepositoryException e) {
             e.printStackTrace();
         }
         return versions;
+    }
+
+    private static VersionHistory getVersionHistory(Version version, Version currentVersion)
+            throws RepositoryException {
+        VersionHistory history = null;
+        Node fileNode = version.getFrozenNode();
+        if (fileNode.hasProperty("size")) {
+            System.out.println("creating version...");
+            history = new VersionHistory();
+            history.setModifiedOn(version.getCreated().getTime());
+
+            String identifier = version.getIdentifier();
+            history.setIdentifier(identifier);
+
+            history.setFileName(fileNode.getName());
+            Node file = fileNode.getNode("theFile");
+
+            Node content = file.getNode("jcr:content");
+            history.setSize(content.getProperty("jcr:data").getLength());
+            history.setContent(content);
+            history.setModifiedBy(fileNode.getProperty("jcr:createdBy").getString());
+            if (currentVersion.getIdentifier().equals(version.getIdentifier())) {
+                history.setCurrent(true);
+            }
+        }
+        return history;
     }
 
     public static FileResponse getVersion(Session session, String basePath, String fileName, String versionId)
@@ -94,15 +108,13 @@ public class RepoHistoryHelper {
         String mimeType = null;
         byte[] bytes = null;
         List<VersionHistory> versions = getVersionHistory(session, basePath, fileName);
-        for (VersionHistory versionHistory : versions) {
-            if (versionHistory.getIdentifier().equals(versionId)) {
-                Node content = versionHistory.getContent();
-                bin = content.getProperty("jcr:data").getBinary();
-                mimeType = content.getProperty("jcr:mimeType").getString();
-                break;
-            }
+        VersionHistory versionHistory = versions.stream().filter(history -> history.getIdentifier().equals(versionId))
+                .findFirst().orElse(null);
+        if (versionHistory != null) {
+            Node content = versionHistory.getContent();
+            bin = content.getProperty("jcr:data").getBinary();
+            mimeType = content.getProperty("jcr:mimeType").getString();
         }
-
         if (null != bin && StringUtils.isNotBlank(mimeType)) {
             InputStream stream = bin.getStream();
             bytes = IOUtils.toByteArray(stream);

@@ -17,7 +17,8 @@ public class RepositoryBuilder {
         System.setProperty("oak.documentMK.disableLeaseCheck", "true");
         DocumentNodeStore ns = new DocumentMK.Builder().setMongoDB(uri, "oak_demo", 16).getNodeStore();
         Repository repo = new Jcr(new Oak(ns)).createRepository();
-        System.out.println("oak.documentMK.disableLeaseCheck="+System.getProperty("oak.documentMK.disableLeaseCheck"));
+        System.out
+                .println("oak.documentMK.disableLeaseCheck=" + System.getProperty("oak.documentMK.disableLeaseCheck"));
         return repo;
     }
 }

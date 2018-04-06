@@ -37,10 +37,10 @@ public class RepositoryHelper {
         byte[] bytes = IOUtils.toByteArray(stream);
         bin.dispose();
         stream.close();
-        
+
         FileResponse fileResponse = new FileResponse();
         fileResponse.setBytes(bytes);
-        fileResponse.setContentType(fileContent.getProperty("jcr:mimeType").getString());        
+        fileResponse.setContentType(fileContent.getProperty("jcr:mimeType").getString());
         return fileResponse;
 
     }
