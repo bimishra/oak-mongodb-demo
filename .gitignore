@@ -1,5 +1,16 @@
-/target/
-.settings/org.eclipse.m2e.core.prefs
-*.prefs
+# Eclipse
 .classpath
 .project
+.settings/
+ 
+# Intellij
+.idea/
+*.iml
+*.iws
+ 
+# Mac
+.DS_Store
+ 
+# Maven
+log/
+target/
